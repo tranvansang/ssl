@@ -41,16 +41,28 @@ stop_container_at_path () {
         echo "${id_path} not found. skip stopping"
     fi
 }
-if [[ ! -f ${www_path} ]]
-then
-    echo "make dir ${www_path}"
-    mkdir -p ${www_path}
-fi
-if [[ ! -f ${letsencrypt_path} ]]
-then
-    echo "make dir ${letsencrypt_path}"
-    mkdir -p ${letsencrypt_path}
-fi
+create_dir () {
+    local dir_path=$1
+    echo "try making dir ${dir_path}"
+    if [[ -f ${dir_path} ]]
+    then
+        echo "${dir_path} exists as a file. try deleting (non root)"
+        rm -f ${dir_path}
+        if [[ $? != 0 ]]
+        then
+            echo "cannot remove ${dir_path}. You may need to remove it manually with sudo privilege. By running following command"
+            echo "sudo rm -rf ${dir_path}"
+            exit 1
+        fi
+    fi
+    if [[ ! -d ${dir_path} ]]
+    then
+        echo "make dir ${www_path}"
+        mkdir -p ${www_path}
+    fi
+}
+create_dir ${www_path}
+create_dir ${letsencrypt_path}
 cert_path=${cur_dir}/build/letsencrypt/live/${DOMAIN}/fullchain.pem
 if [[ ! -f ${cert_path} ]]
 then
@@ -112,7 +124,7 @@ then
         | sed -e "s/{{PORT}}/${PORT}/g" \
         > ${nginx_path}
     echo "start main nginx server in background"
-    nginx_name=$( docker run -d \
+    nginx_id=$( docker run -d \
         -v ${letsencrypt_path}:/etc/letsencrypt \
         -v ${www_path}:/www:ro \
         -v ${nginx_path}:/etc/nginx/nginx.conf:ro \
@@ -127,7 +139,7 @@ then
         echo "can not start nginx"
         exit 1
     fi
-    echo ${nginx_name} > ${nginx_id_path}
+    echo ${nginx_id} > ${nginx_id_path}
 fi
 
 #ssl refresh crontab
