@@ -33,11 +33,10 @@ stop_container_at_path () {
         if [[ $? != 0 ]]
         then
             echo "Can not stop currently running container id ${container_id} at path ${id_path}"
-            exit 1
         else
             echo "container ${container_id} has been stopped"
-            rm ${id_path}
         fi
+        rm ${id_path}
     else
         echo "${id_path} not found. skip stopping"
     fi
