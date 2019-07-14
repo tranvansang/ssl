@@ -7,7 +7,7 @@ then
 	echo '.env does not exist. check .env.example for sample configuration'
 	exit 1
 fi
-export $(grep -v '^\(#\|\s*$\)' ${env_path} | xargs -0)
+source ${env_path}
 to_stop=$1
 
 # gen params.pem
