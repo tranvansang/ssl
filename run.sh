@@ -59,7 +59,7 @@ then
     #stop nginx if running
     stop_container_at_path ${nginx_id_path}
     #generate temporary nginx conf for initial ssl setup
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/conf.d/www-nginx.conf > ${www_nginx_path}
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/www-nginx.conf > ${www_nginx_path}
     echo "run temporary nginx server in background"
     temp_nginx_name=$( docker run -d \
         -v ${www_path}:/www:ro \
@@ -102,7 +102,7 @@ cron_id_path=${cur_dir}/build/cron.txt
 stop_container_at_path ${nginx_id_path}
 if [[ ${to_stop} != "stop" ]]
 then
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/conf.d/nginx.conf \
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/nginx.conf \
         | sed -e "s/{{PORT}}/${PORT}/g" \
         > ${nginx_path}
     echo "start main nginx server in background"
