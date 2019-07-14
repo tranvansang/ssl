@@ -102,7 +102,14 @@ cron_id_path=${cur_dir}/build/cron.txt
 stop_container_at_path ${nginx_id_path}
 if [[ ${to_stop} != "stop" ]]
 then
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/nginx.conf \
+    overwritten_nginx_path=${cur_dir}/nginx.conf
+    if [[ -f ${overwritten_nginx_path} ]]
+    then
+        nginx_template_path=${overwritten_nginx_path}
+    else
+        nginx_template_path=${cur_dir}/src/nginx.conf
+    fi
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${nginx_template_path} \
         | sed -e "s/{{PORT}}/${PORT}/g" \
         > ${nginx_path}
     echo "start main nginx server in background"

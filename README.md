@@ -15,6 +15,9 @@ This is production level configuration of nginx server with ssl, which supports 
 - To stop, run `./run.sh stop`
 
 # Custom nginx config
-- The nginx configuration is defined in [src/nginx.conf](./src/nginx.conf).
+The nginx configuration is defined in [src/nginx.conf](./src/nginx.conf).
  It is configured base on [server-configs-nginx](https://github.com/h5bp/server-configs-nginx) project.
  The configuration should serve file from `/www` with `http://{{DOMAIN}}/.well-known` request.
+ 
+ If there is `nginx.conf` file exists in the root directory of the project, this file will be used instead of the [src/nginx.conf](./src/nginx.conf).
+ You can clone and add your own configuration without touching the git repository because the `nginx.conf` in the root directory is ignored.
