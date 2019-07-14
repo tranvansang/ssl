@@ -2,7 +2,8 @@
 
 cur_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 env_path=${cur_dir}/.env
-if [[ ! -f ${env_path} ]]; then
+if [[ ! -f ${env_path} ]]
+then
 	echo '.env does not exist. check .env.example for sample configuration'
 	exit 1
 fi
@@ -11,7 +12,8 @@ to_stop=$1
 
 # gen params.pem
 params_path=${cur_dir}/build/dhparams.pem
-if [[ -f ${params_path} ]]; then
+if [[ -f ${params_path} ]]
+then
     openssl dhparam -out ${params_path} 2048
 fi
 
@@ -24,10 +26,12 @@ letsencrypt_path=${cur_dir}/build/letsencrypt
 stop_container_at_path () {
     local id_path=$1
     echo "try stop container with id stored in ${id_path}"
-    if [[ -f ${id_path} ]]; then
+    if [[ -f ${id_path} ]]
+    then
         local container_id=$( cat ${nginx_id_path} )
         docker stop ${container_id}
-        if [[ $? != 0 ]]; then
+        if [[ $? != 0 ]]
+        then
             echo "Can not stop currently running container id ${container_id} at path ${id_path}"
             exit 1
         else
@@ -38,16 +42,19 @@ stop_container_at_path () {
         echo "${id_path} not found. skip stopping"
     fi
 }
-if [[ ! -f ${www_path} ]]; then
+if [[ ! -f ${www_path} ]]
+then
     echo "make dir ${www_path}"
     mkdir -p ${www_path}
 fi
-if [[ ! -f ${letsencrypt_path} ]]; then
+if [[ ! -f ${letsencrypt_path} ]]
+then
     echo "make dir ${letsencrypt_path}"
     mkdir -p ${letsencrypt_path}
 fi
 cert_path=${cur_dir}/build/letsencrypt/live/${DOMAIN}/fullchain.pem
-if [[ ! -f ${cert_path} ]]; then
+if [[ ! -f ${cert_path} ]]
+then
     echo "cert not found. run initial setup"
     #stop nginx if running
     stop_container_at_path ${nginx_id_path}
@@ -61,7 +68,8 @@ if [[ ! -f ${cert_path} ]]; then
         -it \
         -p 80:80 \
         nginx:${NGINX_VER} )
-    if [[ $? != 0 ]]; then
+    if [[ $? != 0 ]]
+    then
         echo "can not start nginx"
         exit 1
     fi
@@ -80,7 +88,8 @@ if [[ ! -f ${cert_path} ]]; then
             -m ${EMAIL}
     echo "stop the temporary nginx server"
     docker stop ${temp_nginx_name}
-    if [[ $? != 0 ]]; then
+    if [[ $? != 0 ]]
+    then
         echo "can not stop nginx"
         exit 1
     fi
@@ -91,7 +100,8 @@ fi
 nginx_path=${cur_dir}/build/nginx.conf
 cron_id_path=${cur_dir}/build/cron.txt
 stop_container_at_path ${nginx_id_path}
-if [[ ${to_stop} != "stop" ]]; then
+if [[ ${to_stop} != "stop" ]]
+then
     sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/conf.d/nginx.conf \
         | sed -e "s/{{PORT}}/${PORT}/g" \
         > ${nginx_path}
@@ -106,7 +116,8 @@ if [[ ${to_stop} != "stop" ]]; then
         -it \
         --net=host \
         nginx:${NGINX_VER} )
-    if [[ $? != 0 ]]; then
+    if [[ $? != 0 ]]
+    then
         echo "can not start nginx"
         exit 1
     fi
@@ -115,7 +126,8 @@ fi
 
 #ssl refresh crontab
 stop_container_at_path ${cron_id_path}
-if [[ ${to_stop} != "stop" ]]; then
+if [[ ${to_stop} != "stop" ]]
+then
     echo "start crontab server in background to periodically refresh ssl cert"
     cron_id=$( docker run \
         -d \
@@ -126,7 +138,8 @@ if [[ ${to_stop} != "stop" ]]; then
         --entrypoint /usr/sbin/crond \
         certbot/certbot:${CERTBOT_VER} \
             -f -d 8 /etc/cron.d/certbot-cron )
-    if [[ $? != 0 ]]; then
+    if [[ $? != 0 ]]
+    then
         echo "can not start crontab job to refresh ssl periodically"
         exit 1
     fi

@@ -17,4 +17,4 @@ This is production level configuration of nginx server with ssl, which supports 
 # Custom nginx config
 - The nginx configuration is defined in [src/nginx.conf](./src/nginx.conf).
  It is configured base on [server-configs-nginx](https://github.com/h5bp/server-configs-nginx) project.
- The configuration should serve file from `/www` with `/.well-known` request.
+ The configuration should serve file from `/www` with `http://{{DOMAIN}}/.well-known` request.
