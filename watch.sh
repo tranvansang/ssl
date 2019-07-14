@@ -35,7 +35,7 @@ mod_date=$( docker run \
     -v ${letsencrypt_path}:/etc/letsencrypt:ro \
     --rm \
     --entrypoint /bin/stat \
-    certbot/certbot \
+    certbot/certbot:${CERTBOT_VER} \
         -c '%y' \
         /etc/letsencrypt/live/${DOMAIN}/fullchain.pem )
 if [[ $? != 0 ]]
