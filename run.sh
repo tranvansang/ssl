@@ -119,6 +119,7 @@ then
         -v ${nginx_path}:/etc/nginx/nginx.conf:ro \
         -v ${params_path}:/etc/ssl/private/dhparams.pem:ro \
         -v ${cur_dir}/src/conf.d:/etc/nginx/conf.d:ro \
+        ${NGINX_DOCKER_FLAG} \
         --rm \
         -it \
         --net=host \
