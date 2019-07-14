@@ -28,7 +28,7 @@ stop_container_at_path () {
     echo "try stop container with id stored in ${id_path}"
     if [[ -f ${id_path} ]]
     then
-        local container_id=$( cat ${nginx_id_path} )
+        local container_id=$( cat ${id_path} )
         docker stop ${container_id}
         if [[ $? != 0 ]]
         then
