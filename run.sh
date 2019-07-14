@@ -65,7 +65,6 @@ then
         -v ${www_path}:/www:ro \
         -v ${www_nginx_path}:/etc/nginx/nginx.conf:ro \
         --rm \
-        -it \
         -p 80:80 \
         nginx:${NGINX_VER} )
     if [[ $? != 0 ]]
@@ -122,7 +121,6 @@ then
         -v ${cur_dir}/src/conf.d:/etc/nginx/conf.d:ro \
         ${NGINX_DOCKER_FLAG} \
         --rm \
-        -it \
         --net=host \
         nginx:${NGINX_VER} )
     if [[ $? != 0 ]]
