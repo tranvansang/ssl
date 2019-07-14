@@ -81,6 +81,7 @@ then
         certbot/certbot:${CERTBOT_VER} \
         certonly \
             -d ${DOMAIN} \
+            --rm \
             --webroot \
             --webroot-path /www \
             --non-interactive \
