@@ -13,7 +13,7 @@ then
 	exit 1
 fi
 source "${env_path}"
-operator=$1
+operator="$1"
 
 # gen params.pem
 params_path="${cur_dir}/build/dhparams.pem"
@@ -29,7 +29,7 @@ www_path="${cur_dir}/build/www"
 letsencrypt_path="${cur_dir}/build/letsencrypt"
 
 stop_container_at_path () {
-    local id_path=$1
+    local id_path="$1"
     echo "try stop container with id stored in ${id_path}"
     if [[ -f ${id_path} ]]
     then
@@ -47,7 +47,7 @@ stop_container_at_path () {
     fi
 }
 create_dir () {
-    local dir_path=$1
+    local dir_path="$1"
     echo "try making dir ${dir_path}"
     if [[ -f ${dir_path} ]]
     then
@@ -69,7 +69,7 @@ create_dir () {
 create_dir "${www_path}"
 create_dir "${letsencrypt_path}"
 init_domain() {
-    local local_domain=$1
+    local local_domain="$1"
     cert_path="${cur_dir}/build/letsencrypt/live/${local_domain}/fullchain.pem"
     if [[ ! -f ${cert_path} ]]
     then
@@ -121,7 +121,7 @@ init_domain() {
 }
 if [[ ${operator} = "add" ]]
 then
-    param_domain=$2
+    param_domain="$2"
     echo "init domain(${param_domain}) only"
     init_domain "${param_domain}"
     exit 0

@@ -14,7 +14,7 @@ source "${env_path}"
 
 send_slack () {
     local msg_prefix="[ssl ${DOMAIN}]"
-	local msg=$1
+	local msg="$1"
 	local full_msg="${msg_prefix} ${msg}"
 	echo ${full_msg}
 	if [[ ${SLACK_WEBHOOK_URL} != "" ]]
