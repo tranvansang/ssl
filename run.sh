@@ -96,6 +96,11 @@ then
             --non-interactive \
             --agree-tos \
             -m ${EMAIL}
+    if [[ $? != 0 ]]
+    then
+        echo "Can not generate initial certificate. Is your DNS config correct?"
+        exit 1
+    fi
     echo "stop the temporary nginx server"
     docker stop ${temp_nginx_name}
     if [[ $? != 0 ]]
