@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+#usage
+# ./run.sh
+# ./run.sh stop
+# ./run.sh add <domain>
+
 cur_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 env_path=${cur_dir}/.env
 if [[ ! -f ${env_path} ]]
@@ -8,7 +13,7 @@ then
 	exit 1
 fi
 source ${env_path}
-to_stop=$1
+operator=$1
 
 # gen params.pem
 params_path=${cur_dir}/build/dhparams.pem
@@ -63,61 +68,72 @@ create_dir () {
 }
 create_dir ${www_path}
 create_dir ${letsencrypt_path}
-cert_path=${cur_dir}/build/letsencrypt/live/${DOMAIN}/fullchain.pem
-if [[ ! -f ${cert_path} ]]
-then
-    echo "cert not found. run initial setup"
-    #stop nginx if running
-    stop_container_at_path ${nginx_id_path}
-    #generate temporary nginx conf for initial ssl setup
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${cur_dir}/src/www-nginx.conf > ${www_nginx_path}
-    echo "run temporary nginx server in background"
-    temp_nginx_name=$( docker run -d \
-        -v ${www_path}:/www:ro \
-        -v ${www_nginx_path}:/etc/nginx/nginx.conf:ro \
-        --rm \
-        -p 80:80 \
-        nginx:${NGINX_VER} )
-    if [[ $? != 0 ]]
+init_domain() {
+    local local_domain=$1
+    cert_path=${cur_dir}/build/letsencrypt/live/${local_domain}/fullchain.pem
+    if [[ ! -f ${cert_path} ]]
     then
-        echo "can not start nginx"
-        exit 1
-    fi
-    echo "generate initial ssl cert with certonly"
-    docker run \
-        -v ${letsencrypt_path}:/etc/letsencrypt \
-        -v ${www_path}:/www \
-        --rm \
-        certbot/certbot:${CERTBOT_VER} \
-        certonly \
-            -d ${DOMAIN} \
-            --webroot \
-            --webroot-path /www \
-            --non-interactive \
-            --agree-tos \
-            -m ${EMAIL}
-    if [[ $? != 0 ]]
-    then
-        echo "Can not generate initial certificate. Is your DNS config correct?"
+        echo "cert not found. run initial setup"
+        #stop nginx if running
+        stop_container_at_path ${nginx_id_path}
+        #generate temporary nginx conf for initial ssl setup
+        sed "s/{{DOMAIN}}/${local_domain}/g" ${cur_dir}/src/www-nginx.conf > ${www_nginx_path}
+        echo "run temporary nginx server in background"
+        temp_nginx_name=$( docker run -d \
+            -v ${www_path}:/www:ro \
+            -v ${www_nginx_path}:/etc/nginx/nginx.conf:ro \
+            --rm \
+            -p 80:80 \
+            nginx:${NGINX_VER} )
+        if [[ $? != 0 ]]
+        then
+            echo "can not start nginx"
+            exit 1
+        fi
+        echo "generate initial ssl cert with certonly"
+        docker run \
+            -v ${letsencrypt_path}:/etc/letsencrypt \
+            -v ${www_path}:/www \
+            --rm \
+            certbot/certbot:${CERTBOT_VER} \
+            certonly \
+                -d ${local_domain} \
+                --webroot \
+                --webroot-path /www \
+                --non-interactive \
+                --agree-tos \
+                -m ${EMAIL}
+        if [[ $? != 0 ]]
+        then
+            echo "Can not generate initial certificate. Is your DNS config correct?"
+            echo "stop the temporary nginx server"
+            docker stop ${temp_nginx_name}
+            exit 1
+        fi
         echo "stop the temporary nginx server"
         docker stop ${temp_nginx_name}
-        exit 1
+        if [[ $? != 0 ]]
+        then
+            echo "can not stop nginx"
+            exit 1
+        fi
     fi
-    echo "stop the temporary nginx server"
-    docker stop ${temp_nginx_name}
-    if [[ $? != 0 ]]
-    then
-        echo "can not stop nginx"
-        exit 1
-    fi
+}
+if [[ ${operator} = "add" ]]
+then
+    param_domain=$2
+    echo "init domain(${param_domain}) only"
+    init_domain ${param_domain}
+    exit 0
 fi
+init_domain ${DOMAIN}
 
 #assume that ssl cert has been created already
 #main nginx server
 nginx_path=${cur_dir}/build/nginx.conf
 cron_id_path=${cur_dir}/build/cron.txt
 stop_container_at_path ${nginx_id_path}
-if [[ ${to_stop} != "stop" ]]
+if [[ ${operator} != "stop" ]]
 then
     overwritten_nginx_path=${cur_dir}/nginx.conf
     if [[ -f ${overwritten_nginx_path} ]]
@@ -150,7 +166,7 @@ fi
 
 #ssl refresh crontab
 stop_container_at_path ${cron_id_path}
-if [[ ${to_stop} != "stop" ]]
+if [[ ${operator} != "stop" ]]
 then
     echo "start crontab server in background to periodically refresh ssl cert"
     cron_id=$( docker run \
