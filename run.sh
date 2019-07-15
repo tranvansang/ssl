@@ -6,34 +6,34 @@
 # ./run.sh add <domain>
 
 cur_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-env_path=${cur_dir}/.env
+env_path="${cur_dir}/.env"
 if [[ ! -f ${env_path} ]]
 then
 	echo '.env does not exist. check .env.example for sample configuration'
 	exit 1
 fi
-source ${env_path}
+source "${env_path}"
 operator=$1
 
 # gen params.pem
-params_path=${cur_dir}/build/dhparams.pem
+params_path="${cur_dir}/build/dhparams.pem"
 if [[ -f ${params_path} ]]
 then
-    openssl dhparam -out ${params_path} 2048
+    openssl dhparam -out "${params_path}" 2048
 fi
 
 # init certbot
-nginx_id_path=${cur_dir}/build/nginx.txt
-www_nginx_path=${cur_dir}/build/www-nginx.conf
-www_path=${cur_dir}/build/www
-letsencrypt_path=${cur_dir}/build/letsencrypt
+nginx_id_path="${cur_dir}/build/nginx.txt"
+www_nginx_path="${cur_dir}/build/www-nginx.conf"
+www_path="${cur_dir}/build/www"
+letsencrypt_path="${cur_dir}/build/letsencrypt"
 
 stop_container_at_path () {
     local id_path=$1
     echo "try stop container with id stored in ${id_path}"
     if [[ -f ${id_path} ]]
     then
-        local container_id=$( cat ${id_path} )
+        local container_id=$( cat "${id_path}" )
         docker stop ${container_id}
         if [[ $? != 0 ]]
         then
@@ -41,7 +41,7 @@ stop_container_at_path () {
         else
             echo "container ${container_id} has been stopped"
         fi
-        rm ${id_path}
+        rm "${id_path}"
     else
         echo "${id_path} not found. skip stopping"
     fi
@@ -52,7 +52,7 @@ create_dir () {
     if [[ -f ${dir_path} ]]
     then
         echo "${dir_path} exists as a file. try deleting (non root)"
-        rm -f ${dir_path}
+        rm -f "${dir_path}"
         if [[ $? != 0 ]]
         then
             echo "cannot remove ${dir_path}. You may need to remove it manually with sudo privilege. By running following command"
@@ -63,25 +63,25 @@ create_dir () {
     if [[ ! -d ${dir_path} ]]
     then
         echo "make dir ${www_path}"
-        mkdir -p ${www_path}
+        mkdir -p "${www_path}"
     fi
 }
-create_dir ${www_path}
-create_dir ${letsencrypt_path}
+create_dir "${www_path}"
+create_dir "${letsencrypt_path}"
 init_domain() {
     local local_domain=$1
-    cert_path=${cur_dir}/build/letsencrypt/live/${local_domain}/fullchain.pem
+    cert_path="${cur_dir}/build/letsencrypt/live/${local_domain}/fullchain.pem"
     if [[ ! -f ${cert_path} ]]
     then
         echo "cert not found. run initial setup"
         #stop nginx if running
-        stop_container_at_path ${nginx_id_path}
+        stop_container_at_path "${nginx_id_path}"
         #generate temporary nginx conf for initial ssl setup
-        sed "s/{{DOMAIN}}/${local_domain}/g" ${cur_dir}/src/www-nginx.conf > ${www_nginx_path}
+        sed "s/{{DOMAIN}}/${local_domain}/g" "${cur_dir}/src/www-nginx.conf" > "${www_nginx_path}"
         echo "run temporary nginx server in background"
         temp_nginx_name=$( docker run -d \
-            -v ${www_path}:/www:ro \
-            -v ${www_nginx_path}:/etc/nginx/nginx.conf:ro \
+            -v "${www_path}":/www:ro \
+            -v "${www_nginx_path}":/etc/nginx/nginx.conf:ro \
             --rm \
             -p 80:80 \
             nginx:${NGINX_VER} )
@@ -92,8 +92,8 @@ init_domain() {
         fi
         echo "generate initial ssl cert with certonly"
         docker run \
-            -v ${letsencrypt_path}:/etc/letsencrypt \
-            -v ${www_path}:/www \
+            -v "${letsencrypt_path}":/etc/letsencrypt \
+            -v "${www_path}":/www \
             --rm \
             certbot/certbot:${CERTBOT_VER} \
             certonly \
@@ -123,35 +123,35 @@ if [[ ${operator} = "add" ]]
 then
     param_domain=$2
     echo "init domain(${param_domain}) only"
-    init_domain ${param_domain}
+    init_domain "${param_domain}"
     exit 0
 fi
-init_domain ${DOMAIN}
+init_domain "${DOMAIN}"
 
 #assume that ssl cert has been created already
 #main nginx server
-nginx_path=${cur_dir}/build/nginx.conf
-cron_id_path=${cur_dir}/build/cron.txt
-stop_container_at_path ${nginx_id_path}
+nginx_path="${cur_dir}/build/nginx.conf"
+cron_id_path="${cur_dir}/build/cron.txt"
+stop_container_at_path "${nginx_id_path}"
 if [[ ${operator} != "stop" ]]
 then
-    overwritten_nginx_path=${cur_dir}/nginx.conf
+    overwritten_nginx_path="${cur_dir}/nginx.conf"
     if [[ -f ${overwritten_nginx_path} ]]
     then
-        nginx_template_path=${overwritten_nginx_path}
+        nginx_template_path="${overwritten_nginx_path}"
     else
-        nginx_template_path=${cur_dir}/src/nginx.conf
+        nginx_template_path="${cur_dir}/src/nginx.conf"
     fi
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" ${nginx_template_path} \
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" "${nginx_template_path}" \
         | sed -e "s/{{PORT}}/${PORT}/g" \
-        > ${nginx_path}
+        > "${nginx_path}"
     echo "start main nginx server in background"
     nginx_id=$( docker run -d \
-        -v ${letsencrypt_path}:/etc/letsencrypt \
-        -v ${www_path}:/www:ro \
-        -v ${nginx_path}:/etc/nginx/nginx.conf:ro \
-        -v ${params_path}:/etc/ssl/private/dhparams.pem:ro \
-        -v ${cur_dir}/src/conf.d:/etc/nginx/conf.d:ro \
+        -v "${letsencrypt_path}":/etc/letsencrypt \
+        -v "${www_path}":/www:ro \
+        -v "${nginx_path}":/etc/nginx/nginx.conf:ro \
+        -v "${params_path}":/etc/ssl/private/dhparams.pem:ro \
+        -v "${cur_dir}/src/conf.d":/etc/nginx/conf.d:ro \
         ${NGINX_DOCKER_FLAG} \
         --rm \
         --net=host \
@@ -161,19 +161,19 @@ then
         echo "can not start nginx"
         exit 1
     fi
-    echo ${nginx_id} > ${nginx_id_path}
+    echo ${nginx_id} > "${nginx_id_path}"
 fi
 
 #ssl refresh crontab
-stop_container_at_path ${cron_id_path}
+stop_container_at_path "${cron_id_path}"
 if [[ ${operator} != "stop" ]]
 then
     echo "start crontab server in background to periodically refresh ssl cert"
     cron_id=$( docker run \
         -d \
-        -v ${letsencrypt_path}:/etc/letsencrypt \
-        -v ${www_path}:/www \
-        -v ${cur_dir}/src/certbot-cron:/etc/cron.d/certbot-cron:ro \
+        -v "${letsencrypt_path}":/etc/letsencrypt \
+        -v "${www_path}":/www \
+        -v "${cur_dir}/src/certbot-cron":/etc/cron.d/certbot-cron:ro \
         --rm \
         --entrypoint /usr/sbin/crond \
         certbot/certbot:${CERTBOT_VER} \
@@ -183,6 +183,6 @@ then
         echo "can not start crontab job to refresh ssl periodically"
         exit 1
     fi
-    echo ${cron_id} > ${cron_id_path}
+    echo ${cron_id} > "${cron_id_path}"
 fi
 echo "DONE!"
