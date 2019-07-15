@@ -99,6 +99,8 @@ then
     if [[ $? != 0 ]]
     then
         echo "Can not generate initial certificate. Is your DNS config correct?"
+        echo "stop the temporary nginx server"
+        docker stop ${temp_nginx_name}
         exit 1
     fi
     echo "stop the temporary nginx server"
