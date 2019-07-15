@@ -23,13 +23,12 @@ send_slack () {
     fi
 }
 
-cert_path=${cur_dir}/build/letsencrypt/live/${DOMAIN}/fullchain.pem
-if [[ ! -f ${cert_path} ]]
+letsencrypt_path=${cur_dir}/build/letsencrypt
+if [[ ! -d ${letsencrypt_path} ]]
 then
     send_slack "cert is not inited. please run ./run.sh"
     exit 1
 fi
-letsencrypt_path=${cur_dir}/build/letsencrypt
 echo "check latest stat info"
 mod_date=$( docker run \
     -v ${letsencrypt_path}:/etc/letsencrypt:ro \
