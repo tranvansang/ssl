@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # crontab entry
-# 0 15 * * * ./watch.sh
+# 0 15 * * * $HOME/ssl/watch.sh
 
 cur_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 env_path="${cur_dir}/.env"

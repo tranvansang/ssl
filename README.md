@@ -9,7 +9,7 @@ This is production level configuration of nginx server with ssl, which supports 
 - Add following crontab entry to refresh the server when
 ```
 #15 UTC ~ 0AM JST
-0 15 * * * watch.sh
+0 15 * * * $HOME/ssl/watch.sh
 ```
 
 - To stop, run `./run.sh stop`
