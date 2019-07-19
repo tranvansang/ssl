@@ -4,6 +4,18 @@
 # ./run.sh
 # ./run.sh stop
 
+check_cmd () {
+	cmd="$1"
+	if [[ ! -x $(command -v ${cmd}) ]]
+	then
+		echo "${cmd} is required to run this script. please install it"
+		exit 1
+	fi
+}
+check_cmd awk
+check_cmd docker
+check_cmd sed
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 env_path="${DIR}/.env"
 if [[ ! -f ${env_path} ]]
@@ -75,8 +87,7 @@ create_dir () {
         mkdir -p "${www_path}"
     fi
 }
-create_dir "${www_path}"
-create_dir "${letsencrypt_path}"
+create_dir "${DIR}/build"
 init_domain() {
     local local_domain="$1"
     echo "check domain ${local_domain}"
