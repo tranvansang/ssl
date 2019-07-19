@@ -79,9 +79,13 @@ create_dir "${www_path}"
 create_dir "${letsencrypt_path}"
 init_domain() {
     local local_domain="$1"
-    cert_path="${DIR}/build/letsencrypt/live/${local_domain}/fullchain.pem"
     echo "check domain ${local_domain}"
-    if [[ ! -f ${cert_path} ]]
+	docker run --rm \
+		-v "${letsencrypt_path}":/etc/letsencrypt:ro \
+		--entrypoint /bin/sh \
+		certbot/certbot:${CERTBOT_VER} \
+			-c "if [ -f /etc/letsencrypt/live/${local_domain}/fullchain.pem ]; then exit 0; else exit 1; fi"
+    if [[ $? != "0" ]]
     then
         echo "cert not found. run initial setup"
         #stop nginx if running
@@ -130,12 +134,9 @@ init_domain() {
     fi
 }
 
-i=0
-while [[ ${i} -lt ${ndomain} ]]
+for domain in ${DOMAINS}
 do
-    domain=domain_list[${i}]
     init_domain "${domain}"
-    i=$((${i} + 1))
 done
 
 #assume that ssl cert has been created already
@@ -143,39 +144,40 @@ done
 nginx_path="${DIR}/build/nginx.conf"
 cron_id_path="${DIR}/build/cron.txt"
 stop_container_at_path "${nginx_id_path}"
+stop_container_at_path "${cron_id_path}"
 if [[ ${operator} != "stop" ]]
 then
     overwritten_nginx_path="${DIR}/nginx.conf"
     if [[ -f ${overwritten_nginx_path} ]]
     then
         echo "detect manual nginx overwritten. use that configuration"
-        cp "${overwritten_nginx_path}" "${ngix_path}"
+        cp "${overwritten_nginx_path}" "${nginx_path}"
     else
         echo "generate nginx config from templates"
         i=0
         servers=
+        server_template_path="${DIR}/src/server.conf"
         while [[ ${i} -lt ${ndomain} ]]
         do
-            domain=domain_list[${i}]
-            port=port_list[${i}]
-            server=$( sed "s/{{DOMAIN}}/${domain}/g" "${nginx_template_path}" \
+            domain="${domain_list[${i}]}"
+            port="${port_list[${i}]}"
+            server=$( sed "s/{{DOMAIN}}/${domain}/g" "${server_template_path}" \
                 | sed -e "s/{{PORT}}/${port}/g" )
             servers="${servers}\n${server}"
             i=$((${i} + 1))
         done
         nginx_template_path="${DIR}/src/nginx.conf"
-        sed "s/{{SERVERS}}/${servers}/g" "${nginx_template_path}" > "${nginx_path}"
+		awk -v servers="${servers}" '{sub("{{SERVERS}}", servers, $0)} {print}' "${nginx_template_path}" > ${nginx_path}
     fi
     echo "start main nginx server in background"
-    nginx_id=$( docker run -d \
+    nginx_id=$( docker run -d --rm \
+        --net=host \
         -v "${letsencrypt_path}":/etc/letsencrypt \
         -v "${www_path}":/www:ro \
         -v "${nginx_path}":/etc/nginx/nginx.conf:ro \
         -v "${dhparams_path}":/etc/ssl/private/dhparams.pem:ro \
         -v "${DIR}/src/conf.d":/etc/nginx/conf.d:ro \
         ${NGINX_DOCKER_FLAG} \
-        --rm \
-        --net=host \
         nginx:${NGINX_VER} )
     if [[ $? != 0 ]]
     then
@@ -183,15 +185,11 @@ then
         exit 1
     fi
     echo ${nginx_id} > "${nginx_id_path}"
-fi
 
 #ssl refresh crontab
-stop_container_at_path "${cron_id_path}"
-if [[ ${operator} != "stop" ]]
-then
     echo "start crontab server in background to periodically refresh ssl cert"
     cron_id=$( docker run \
-        -d \
+		-d --rm \
         -v "${letsencrypt_path}":/etc/letsencrypt \
         -v "${www_path}":/www \
         -v "${DIR}/src/certbot-cron":/etc/cron.d/certbot-cron:ro \

@@ -13,8 +13,9 @@ fi
 source "${env_path}"
 
 send_slack () {
-    local msg_prefix="[ssl ${DOMAINS}]"
-	local msg="$1"
+	local domain="$1"
+    local msg_prefix="[ssl ${domain}]"
+	local msg="$2"
 	local full_msg="${msg_prefix} ${msg}"
 	echo ${full_msg}
 	if [[ ${SLACK_WEBHOOK_URL} != "" ]]
@@ -24,14 +25,19 @@ send_slack () {
 }
 
 letsencrypt_path="${DIR}/build/letsencrypt"
-if [[ ! -d ${letsencrypt_path} ]]
-then
-    send_slack "cert is not inited. please run ./run.sh"
-    exit 1
-fi
 
 check_domain () {
     local domain=$1
+	docker run --rm \
+		-v "${letsencrypt_path}":/etc/letsencrypt:ro \
+		--entrypoint /bin/sh \
+		certbot/certbot:${CERTBOT_VER} \
+			-c "if [ -f /etc/letsencrypt/live/${domain}/fullchain.pem ]; then exit 0; else exit 1; fi"
+    if [[ $? != "0" ]]
+	then
+		send_slack "${domain}" "cert is not inited. please run ./run.sh"
+		exit 1
+	fi
     echo "check latest stat info ${domain}"
     mod_date=$( docker run \
         -v "${letsencrypt_path}":/etc/letsencrypt:ro \
@@ -42,7 +48,7 @@ check_domain () {
             /etc/letsencrypt/live/${domain}/fullchain.pem )
     if [[ $? != 0 ]]
     then
-        send_slack "can not stat file for ${domain}"
+        send_slack "${domain}" "can not stat file for ${domain}"
         exit 1
     else
         echo "latest stat info is ${mod_date}"
@@ -56,7 +62,7 @@ check_domain () {
         last_mod_date=$(cat "${stat_path}")
         if [[ $? != 0 ]]
         then
-            send_slack "can not read info from ${stat_path}"
+            send_slack "${domain}" "can not read info from ${stat_path}"
             exit 1
         else
             echo "last stat info is ${last_mod_date}"
@@ -66,7 +72,7 @@ check_domain () {
             echo "file has changed. restart nginx"
             if [[ ! -f ${nginx_id_path} ]]
             then
-                send_slack "nginx has not start. Can not restart nginx"
+                send_slack "${domain}" "nginx has not start. Can not restart nginx"
                 exit 1
             fi
             nginx_container_name=$( cat "${nginx_id_path}" )
@@ -74,9 +80,9 @@ check_domain () {
             if [[ $? = 0 ]]
             then
                 echo ${mod_date} > "${stat_path}"
-                send_slack "ssl cert updated. nginx has been restarted"
+                send_slack "${domain}" "ssl cert updated. nginx has been restarted"
             else
-                send_slack "!!!ssl cert updated. however, Can not restart nginx"
+                send_slack "${domain}" "!!!ssl cert updated. however, Can not restart nginx"
             fi
             exit 1
         else
