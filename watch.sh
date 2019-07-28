@@ -83,6 +83,7 @@ check_domain() {
 	fi
 }
 
-for domain in ${DOMAINS}; do
+IFS=, read -r -a domain_list < <(echo "${DOMAINS}")
+for domain in "${domain_list[@]}"; do
 	check_domain "${domain}"
 done

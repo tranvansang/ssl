@@ -105,7 +105,7 @@ init_domain() {
 	fi
 }
 
-for domain in ${DOMAINS}; do
+for domain in "${domain_list[@]}"; do
 	init_domain "${domain}"
 done
 
