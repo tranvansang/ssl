@@ -40,8 +40,8 @@ fi
 
 # init certbot
 # shellcheck disable=SC2207
-IFS="," read -r -a domain_list < <(cat "${DOMAINS}")
-IFS="," read -r -a port_list < <(cat "${PORTS}")
+IFS=, read -r -a domain_list < <(echo "${DOMAINS}")
+IFS=, read -r -a port_list < <(echo "${PORTS}")
 ndomain=${#domain_list[@]}
 nport=${#port_list[@]}
 
