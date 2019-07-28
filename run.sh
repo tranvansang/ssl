@@ -66,7 +66,7 @@ init_domain() {
 	local local_domain="$1"
 	echo "check domain ${local_domain}"
 	if ! docker run --rm \
-		-v "${build_dir}":/etc/letsencrypt:ro \
+		-v "${build_dir}/letsencrypt":/etc/letsencrypt:ro \
 		--entrypoint /bin/sh \
 		certbot/certbot:"${CERTBOT_VER}" \
 		-c "if [ -f /etc/letsencrypt/live/${local_domain}/fullchain.pem ]; then exit 0; else exit 1; fi"; then
