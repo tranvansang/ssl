@@ -56,7 +56,9 @@ stop_container_at_path() {
 	if [[ -f ${id_path} ]]; then
 		local container_id
 		container_id=$(cat "${id_path}")
-		docker stop "${container_id}"
+		if ! docker stop "${container_id}"; then
+			echo "Can not stop container. skipping..."
+		fi
 		rm "${id_path}"
 	else
 		echo "${id_path} not found. skip stopping"
