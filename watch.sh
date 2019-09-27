@@ -68,10 +68,10 @@ check_domain() {
 			fi
 			nginx_container_name=$(cat "${nginx_id_path}")
 			if ! docker restart "${nginx_container_name}"; then
+				send_slack "${domain}" "!!!ssl cert updated. however, Can not restart nginx"
+			else
 				echo "${mod_date}" >"${stat_path}"
 				send_slack "${domain}" "ssl cert updated. nginx has been restarted"
-			else
-				send_slack "${domain}" "!!!ssl cert updated. however, Can not restart nginx"
 			fi
 			exit 1
 		else
