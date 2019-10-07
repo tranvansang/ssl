@@ -156,7 +156,7 @@ if [[ ${operator} != "stop" ]]; then
 		-d --rm \
 		-v "${build_dir}/letsencrypt":/etc/letsencrypt \
 		-v "${build_dir}/www":/www \
-		-v "${src_dir}/certbot-cron":/etc/cron.d/certbot-cron:ro \
+		-v "${src_dir}/certbot-cron":/var/spool/cron/crontabs/root:ro \
 		--rm \
 		--entrypoint /usr/sbin/crond \
 		certbot/certbot:"${CERTBOT_VER}" \
