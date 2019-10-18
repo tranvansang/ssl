@@ -66,61 +66,38 @@ stop_container_at_path() {
 }
 init_domain() {
 	local local_domain="$1"
-  #stop nginx if running
-  stop_container_at_path "${build_dir}/nginx.txt"
-  #generate temporary nginx conf for initial ssl setup
-  sed "s/{{DOMAIN}}/${local_domain}/g" "${src_dir}/www-nginx.conf" >"${build_dir}/www-nginx.conf"
-  echo "run temporary nginx server in background"
-  temp_nginx_name=$(docker run -d \
-    -v "${build_dir}/www":/www:ro \
-    -v "${build_dir}/www-nginx.conf":/etc/nginx/nginx.conf:ro \
-    --rm \
-    -p 80:80 \
-    nginx:"${NGINX_VER}")
+	#stop nginx if running
+	stop_container_at_path "${build_dir}/nginx.txt"
+	#generate temporary nginx conf for initial ssl setup
+	sed "s/{{DOMAIN}}/${local_domain}/g" "${src_dir}/www-nginx.conf" >"${build_dir}/www-nginx.conf"
+	echo "run temporary nginx server in background"
+	temp_nginx_name=$(docker run -d \
+		-v "${build_dir}/www":/www:ro \
+		-v "${build_dir}/www-nginx.conf":/etc/nginx/nginx.conf:ro \
+		--rm \
+		-p 80:80 \
+		nginx:"${NGINX_VER}")
 	echo "check domain ${local_domain}"
-	if ! docker run --rm \
-		-v "${build_dir}/letsencrypt":/etc/letsencrypt:ro \
-		--entrypoint /bin/sh \
+	echo "generate initial ssl cert or renew specific domain with certonly"
+	if ! docker run \
+		-v "${build_dir}/letsencrypt":/etc/letsencrypt \
+		-v "${build_dir}/www":/www \
+		--rm \
 		certbot/certbot:"${CERTBOT_VER}" \
-		-c "if [ -f /etc/letsencrypt/live/${local_domain}/fullchain.pem ]; then exit 0; else exit 1; fi"; then
-		echo "cert not found. generate initial ssl cert with certonly"
-		if ! docker run \
-			-v "${build_dir}/letsencrypt":/etc/letsencrypt \
-			-v "${build_dir}/www":/www \
-			--rm \
-			certbot/certbot:"${CERTBOT_VER}" \
-			certonly \
-			-d "${local_domain}" \
-			--webroot \
-			--webroot-path /www \
-			--non-interactive \
-			--agree-tos \
-			-m "${EMAIL}"; then
-			echo "Can not generate initial certificate. Is your DNS config correct?"
-			echo "stop the temporary nginx server"
-			docker stop "${temp_nginx_name}"
-			exit 1
-		fi
-	else
-		echo "cert found. run renew"
-		if ! docker run \
-			-v "${build_dir}/letsencrypt":/etc/letsencrypt \
-			-v "${build_dir}/www":/www \
-			--rm \
-			certbot/certbot:"${CERTBOT_VER}" \
-			renew \
-			-d "${local_domain}" \
-			--webroot \
-			--webroot-path /www \
-			--non-interactive; then
-			echo "Can not renew. Is your DNS config correct?"
-			echo "stop the temporary nginx server"
-			docker stop "${temp_nginx_name}"
-			exit 1
-		fi
+		certonly \
+		-d "${local_domain}" \
+		--webroot \
+		--webroot-path /www \
+		--non-interactive \
+		--agree-tos \
+		-m "${EMAIL}"; then
+		echo "Can not generate initial certificate. Is your DNS config correct?"
+		echo "stop the temporary nginx server"
+		docker stop "${temp_nginx_name}"
+		exit 1
 	fi
-  echo "stop the temporary nginx server"
-  docker stop "${temp_nginx_name}"
+	echo "stop the temporary nginx server"
+	docker stop "${temp_nginx_name}"
 }
 
 for domain in "${domain_list[@]}"; do
