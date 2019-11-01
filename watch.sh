@@ -29,6 +29,7 @@ letsencrypt_path="${DIR}/build/letsencrypt"
 check_domain() {
 	local domain=$1
 	if ! docker run --rm \
+		"${CERTBOT_DOCKER_FLAGS[@]}" \
 		-v "${letsencrypt_path}":/etc/letsencrypt:ro \
 		--entrypoint /bin/sh \
 		certbot/certbot:"${CERTBOT_VER}" \
@@ -37,9 +38,9 @@ check_domain() {
 		exit 1
 	fi
 	echo "check latest stat info ${domain}"
-	if ! mod_date=$(docker run \
+	if ! mod_date=$(docker run --rm \
+		"${CERTBOT_DOCKER_FLAGS[@]}" \
 		-v "${letsencrypt_path}":/etc/letsencrypt:ro \
-		--rm \
 		--entrypoint /bin/stat \
 		certbot/certbot:"${CERTBOT_VER}" \
 		-c '%y' \

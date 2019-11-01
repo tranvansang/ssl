@@ -79,10 +79,10 @@ init_domain() {
 		nginx:"${NGINX_VER}")
 	echo "check domain ${local_domain}"
 	echo "generate initial ssl cert or renew specific domain with certonly"
-	if ! docker run \
+	if ! docker run --rm \
+		"${CERTBOT_DOCKER_FLAGS[@]}" \
 		-v "${build_dir}/letsencrypt":/etc/letsencrypt \
 		-v "${build_dir}/www":/www \
-		--rm \
 		certbot/certbot:"${CERTBOT_VER}" \
 		certonly \
 		-d "${local_domain}" \
@@ -132,25 +132,24 @@ if [[ ${operator} != "stop" ]]; then
 	fi
 	echo "start main nginx server in background"
 	# shellcheck disable=SC2086
-	docker run -d --rm \
+	docker run --rm -d \
+		"${NGINX_DOCKER_FLAGS[@]}" \
 		--net=host \
 		-v "${build_dir}/letsencrypt":/etc/letsencrypt \
 		-v "${build_dir}/www":/www:ro \
 		-v "${build_dir}/nginx.conf":/etc/nginx/nginx.conf:ro \
 		-v "${build_dir}/dhparams.pem":/etc/ssl/private/dhparams.pem:ro \
 		-v "${src_dir}/conf.d":/etc/nginx/conf.d:ro \
-		${NGINX_DOCKER_FLAG} \
 		nginx:"${NGINX_VER}" \
 		>"${build_dir}/nginx.txt"
 
 	#ssl refresh crontab
 	echo "start crontab server in background to periodically refresh ssl cert"
-	docker run \
-		-d --rm \
+	docker run --rm -d \
+		"${CERTBOT_DOCKER_FLAGS[@]}" \
 		-v "${build_dir}/letsencrypt":/etc/letsencrypt \
 		-v "${build_dir}/www":/www \
 		-v "${src_dir}/certbot-cron":/var/spool/cron/crontabs/root:ro \
-		--rm \
 		--entrypoint /usr/sbin/crond \
 		certbot/certbot:"${CERTBOT_VER}" \
 		-f -d 8 /etc/cron.d/certbot-cron \
